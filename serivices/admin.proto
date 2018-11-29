@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+
+service Admin {
+    rpc CreateTopic(Topic) returns (AdminResult)
+    rpc CreateSubscription(Subscription) returns (AdminResult)
+}
+
+message Topic {
+    string name = 1;
+    int32 queueNumbers = 2;
+}
+
+message Subscription {
+    string name = 1;
+}
+
+message AdminResult {
+
+}
