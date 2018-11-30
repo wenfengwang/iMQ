@@ -1,8 +1,8 @@
 package storage
 
 type Queue interface {
-	Put([]*MessageExp) error
-	Get(index uint64, num int32) ([]*MessageExp, error)
+	Put([][]byte) error
+	Get(index uint64, num int32) ([][]byte, error)
 }
 
 type queue struct {
@@ -13,11 +13,11 @@ func NewQueue(file DistributedFile) Queue {
 	return &queue{dfile: file}
 }
 
-func (q *queue) Put([]*MessageExp) error {
+func (q *queue) Put([][]byte) error {
 	return nil
 }
 
-func (q *queue) Get(index uint64, num int32) ([]*MessageExp, error) {
+func (q *queue) Get(index uint64, num int32) ([][]byte, error) {
 	return nil, nil
 }
 

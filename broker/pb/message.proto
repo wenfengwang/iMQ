@@ -1,11 +1,8 @@
 syntax = "proto3";
 
 message Message {
-    string topic = 1;
+    int64 messageId = 1;
     string body = 2;
-    map<string, string> properties = 3;
-}
-
-message MessageExp {
-
+    int32 queueId = 3;
+    map<string, string> properties = 4;
 }
