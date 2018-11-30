@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+service Pub {
+    rpc Publish(PublishRequest) returns(PublishResponse)
+
+}
+
+message PublishRequest {
+
+}
+
+message PublishResponse {
+
+}

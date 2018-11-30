@@ -1,0 +1,95 @@
+syntax = "proto3";
+package pb;
+
+//import "gogoproto/gogo.proto";
+//option (gogoproto.marshaler_all) = true;
+//option (gogoproto.sizer_all) = true;
+//option (gogoproto.unmarshaler_all) = true;
+//option (gogoproto.goproto_getters_all) = false;
+//option (gogoproto.goproto_enum_prefix_all) = false;
+
+service Baton {
+    rpc CreateTopic(CreateTopicRequest) returns (Response);
+    rpc DeleteTopic(DeleteTopicRequest) returns (Response);
+    rpc CreateSubscription(CreateSubscriptionRequest) returns (Response);
+    rpc DeleteSubscription(DeleteSubscriptionRequest) returns (Response);
+    rpc BrokerHeartBeat(BrokerHBRequest) returns (BrokerHBResponse);
+    rpc RegisterBroker(RegisterBrokerRequest) returns (Response);
+    rpc UpdateRoute(UpdateRouteRequest) returns (UpdateRouteResponse);
+}
+
+message CreateTopicRequest {
+    string name = 1;
+    int32 queueNumbers = 2;
+    bool autoScaling = 3;
+}
+
+message DeleteTopicRequest {
+    string topicName = 1;
+}
+
+message CreateSubscriptionRequest {
+    string name = 1;
+    string topicName = 2;
+    bool autoScaling = 3;
+}
+
+message DeleteSubscriptionRequest {
+    string name = 1;
+}
+
+message RegisterBrokerRequest {
+    string addr = 1;
+}
+
+message BrokerHBRequest {
+    uint64 brokerId = 3;
+}
+
+message BrokerHBResponse {
+    repeated Queue queues = 1;
+}
+
+
+message UpdateRouteRequest {
+    enum Action {
+        PUB = 0;
+        SUB = 1;
+    };
+    Action action = 1;
+    string name = 2;
+}
+
+message UpdateRouteResponse {
+//    Response
+    repeated Lease leases = 1;
+}
+
+message Lease {
+    string brokerAddr = 1;
+    uint64 expired = 2;
+}
+
+message Queue {
+    uint64 id = 1;
+    Permission perm = 2;
+}
+
+enum Permission {
+    READ = 0;
+    WRITE = 1;
+    READ_WRITE = 2;
+    DENIED = 3;
+}
+
+message Response {
+    Code responseCode = 1;
+//    extensions 16 to 127;
+}
+
+enum Code {
+    SUCCESS = 0;
+    FAILED = 1;
+    TOPIC_MISSING = 2;
+    SUBSCRIPTION_MISSING = 3;
+}
