@@ -13,7 +13,6 @@ func NewBatonClient() pb.BatonClient{
 	if err != nil {
 		panic("dial server err")
 	}
-	defer conn.Close()
 
 	return pb.NewBatonClient(conn)
 }
