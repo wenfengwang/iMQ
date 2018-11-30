@@ -41,3 +41,15 @@ func (tikv *tikvDFile) Read(offset uint64, length int32) ([]byte, error) {
 	//tikv.client.
 	return nil, nil
 }
+
+
+
+type DistributedFile interface {
+	Size() uint64
+	FileID() uint64
+	WriteOffset() uint64
+	ReadOffset() uint64
+	Write(bytes []byte) error
+	Read(offset uint64, length int32) ([]byte, error)
+}
+
