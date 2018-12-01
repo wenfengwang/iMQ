@@ -50,25 +50,28 @@ message BrokerHBResponse {
     repeated uint64 queues = 1;
 }
 
+enum Action {
+    PUB = 0;
+    SUB = 1;
+};
 
 message UpdateRouteRequest {
-    enum Action {
-        PUB = 0;
-        SUB = 1;
-    };
-    Action action = 1;
+    // consumerId or producerId
+    uint64 id = 1;
     string name = 2;
+    Action action = 3;
 }
 
 message UpdateRouteResponse {
+    // consumerId or producerId
     uint64 id = 1;
     repeated Lease leases = 2;
 }
 
 message Lease {
-    string brokerAddr = 1;
-    uint64 id = 2;
-    uint64 expired = 3;
+    uint64 brokerId = 1;
+    string brokerAddr = 2;
+    uint64 expiredTime = 3;
     Permission perm = 4;
 }
 
@@ -89,4 +92,6 @@ enum Code {
     FAILED = 1;
     TOPIC_MISSING = 2;
     SUBSCRIPTION_MISSING = 3;
+    TOPIC_ALREADY_EXIST = 4;
+    SUBSCRIPTION_ALREADY_EXIST = 5;
 }

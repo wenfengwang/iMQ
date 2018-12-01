@@ -14,6 +14,7 @@ const (
 )
 
 type routeManager struct {
+	mdm *metadataManager
 }
 
 func (rm *routeManager) brokerOnline(info *BrokerInfo) {
@@ -24,12 +25,65 @@ func (rm *routeManager) brokerOffline(info *BrokerInfo) {
 
 }
 
-func (rm *routeManager) allocateRouteLeaseForProducer(producerId uint64, t *topic) []*pb.Lease {
+func (rm *routeManager) updateRouteLeaseForProducer(producerId uint64, t *topic) []*pb.Lease {
 	if t == nil {
 		return nil
 	}
 
-	return nil
+	qs := t.getQueueForProducer(producerId)
+
+	if qs == nil {
+		if !t.addProducer(producerId) {
+			if t.autoScaling  {
+				rm.mdm.scale(t)
+			} else {
+				return nil
+			}
+			// TODO scale
+		}
+	}
+
+	qs = t.getQueueForProducer(producerId)
+
+	if len(qs) == 0 {
+		return nil
+	}
+
+	leases := make([]*pb.Lease, len(qs))
+
+	for i :=0; i < len(qs); i++ {
+		qStats := qs[i].status
+		leases[i] = &pb.Lease{
+			BrokerId: qStats.brokerForPub.brokerId,
+			BrokerAddr: qStats.brokerForPub.address,
+		}
+	}
+
+	return leases
+}
+
+func (rm *routeManager) updateRouteLeaseForConsumer(consumerId uint64, t *topic) []*pb.Lease {
+	if t == nil {
+		return nil
+	}
+
+	qs := t.getQueueForConsumer(consumerId)
+
+	// Don't support scale for consumer
+	if qs == nil || len(qs) == 0{
+		return nil
+	}
+
+	leases := make([]*pb.Lease, len(qs))
+	for i :=0; i < len(qs); i++ {
+		qStats := qs[i].status
+		leases[i] = &pb.Lease{
+			BrokerId: qStats.brokerForSub.brokerId,
+			BrokerAddr: qStats.brokerForSub.address,
+		}
+	}
+
+	return leases
 }
 
 type topic struct {
@@ -42,10 +96,17 @@ type topic struct {
 }
 
 func (t *topic) getQueueForProducer(pId uint64) []*Queue {
+	t.status.pMutex.RLock()
+	defer t.status.pMutex.RUnlock()
+
+	p, exist := t.status.producers[pId]
+	if !exist {
+		return nil
+	}
 	qs := make([]*Queue, 0)
 	for i := 0; i < len(t.queues); i++ {
 		qStatus := t.queues[i].status
-		if qStatus.curPID == pId || (qStatus.nextPID == pId && qStatus.pExpired <= time.Now().Unix()) {
+		if qStatus.curPID == p.pId || (qStatus.nextPID == p.pId && qStatus.pExpired <= time.Now().Unix()) {
 			qStatus.pExpired = time.Now().Unix() + RouteLeaseLength
 			qs = append(qs, t.queues[i])
 		}
@@ -54,10 +115,18 @@ func (t *topic) getQueueForProducer(pId uint64) []*Queue {
 }
 
 func (t *topic) getQueueForConsumer(cId uint64) []*Queue {
+	t.status.cMutex.RLock()
+	defer t.status.cMutex.RUnlock()
+
+	c, exist := t.status.consumers[cId]
+	if !exist {
+		return nil
+	}
+
 	qs := make([]*Queue, 0)
 	for i := 0; i < len(t.queues); i++ {
 		qStatus := t.queues[i].status
-		if qStatus.curCID == cId || (qStatus.nextCID == cId && qStatus.pExpired <= time.Now().Unix()) {
+		if qStatus.curCID == c.cId || (qStatus.nextCID == c.cId && qStatus.pExpired <= time.Now().Unix()) {
 			qStatus.pExpired = time.Now().Unix() + RouteLeaseLength
 			qs = append(qs, t.queues[i])
 		}
@@ -137,10 +206,6 @@ func (t *topic) addConsumer(cId uint64) bool {
 
 func (t *topic) removeConsumer(cId uint64) {
 
-}
-
-func (t *topic) scale() {
-	// TODO
 }
 
 // TODO move to pb

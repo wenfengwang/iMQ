@@ -280,3 +280,8 @@ func (mdm *metadataManager) decodeQueue(data []byte) *Queue {
 	q.perm = pb.Permission(p)
 	return q
 }
+
+// TODO
+func (mdm *metadataManager) scale(t *topic) {
+
+}
