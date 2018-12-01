@@ -14,7 +14,7 @@ service Baton {
     rpc CreateSubscription(CreateSubscriptionRequest) returns (Response);
     rpc DeleteSubscription(DeleteSubscriptionRequest) returns (Response);
     rpc BrokerHeartBeat(BrokerHBRequest) returns (BrokerHBResponse);
-    rpc RegisterBroker(RegisterBrokerRequest) returns (Response);
+    rpc RegisterBroker(RegisterBrokerRequest) returns (RegisterBrokerResponse);
     rpc UpdateRoute(UpdateRouteRequest) returns (UpdateRouteResponse);
 }
 
@@ -39,7 +39,11 @@ message DeleteSubscriptionRequest {
 }
 
 message RegisterBrokerRequest {
-    string addr = 1;
+     string addr = 1;
+}
+
+message RegisterBrokerResponse {
+    uint64 id = 1;
 }
 
 message BrokerHBRequest {
