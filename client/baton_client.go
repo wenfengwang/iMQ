@@ -5,7 +5,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func NewBatonClient() pb.BatonClient{
+func NewBatonClient() pb.BatonClient {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
 

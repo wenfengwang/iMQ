@@ -9,7 +9,7 @@ import (
 )
 
 type TestErr struct {
-	err string
+	err  string
 	code int
 }
 
@@ -19,9 +19,9 @@ func (err TestErr) Error() string {
 
 func main() {
 	cli := client.NewBatonClient()
-	for i:= 0; i < 8; i++ {
+	for i := 0; i < 8; i++ {
 		go func() {
-			for  {
+			for {
 				_, err := cli.CreateTopic(context.Background(), &pb.CreateTopicRequest{Name: "test", QueueNumbers: 4})
 				//err.(TestErr).code
 				switch err.(type) {

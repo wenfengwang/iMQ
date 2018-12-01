@@ -42,8 +42,6 @@ func (tikv *tikvDFile) Read(offset uint64, length int32) ([]byte, error) {
 	return nil, nil
 }
 
-
-
 type DistributedFile interface {
 	Size() uint64
 	FileID() uint64
@@ -52,4 +50,3 @@ type DistributedFile interface {
 	Write(bytes []byte) error
 	Read(offset uint64, length int32) ([]byte, error)
 }
-

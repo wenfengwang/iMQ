@@ -1,24 +1,22 @@
 package baton
 
 import (
-	"github.com/pingcap/tidb/store/tikv"
-	"sync"
-	"github.com/wenfengwang/iMQ/baton/pb"
-	"github.com/prometheus/common/log"
-	"github.com/pkg/errors"
-	"fmt"
-	"strings"
-	"strconv"
 	"encoding/binary"
+	"fmt"
+	"github.com/pingcap/tidb/store/tikv"
+	"github.com/pkg/errors"
+	"github.com/prometheus/common/log"
+	"github.com/wenfengwang/iMQ/baton/pb"
+	"strconv"
+	"strings"
+	"sync"
 )
 
-var (
-
-)
+var ()
 
 const (
-	TopicMetaPathPrefix = "/imq/metadata/topic/"
-	QueueMetaPathPrefix = "/imq/metadata/queue/"
+	TopicMetaPathPrefix  = "/imq/metadata/topic/"
+	QueueMetaPathPrefix  = "/imq/metadata/queue/"
 	topicIdGeneratorPath = "/imq/metadata/topic_generator"
 	queueIdGeneratorPath = "/imq/metadata/queue_generator"
 )
@@ -32,15 +30,15 @@ type metadataManager struct {
 	tikvClient *tikv.RawKVClient
 
 	topicMapMutex sync.RWMutex
-	topicMap map[string]*topic
+	topicMap      map[string]*topic
 
 	queueMapMutex sync.RWMutex
-	queueMap map[uint64]*Queue
+	queueMap      map[uint64]*Queue
 
-	tgMutex sync.Mutex
+	tgMutex          sync.Mutex
 	topicIdGenerator uint64
 
-	qGMutex sync.Mutex
+	qGMutex          sync.Mutex
 	queueIdGenerator uint64
 }
 
@@ -66,8 +64,8 @@ func (mdm *metadataManager) loadTopicsAndQueues() {
 		panic(fmt.Sprintf("error: %v, load topics FAILED !!!", err))
 	}
 
-	for i := 0; i< len(value) ; i += 8  {
-		topicId := binary.BigEndian.Uint64(value[i:i+8])
+	for i := 0; i < len(value); i += 8 {
+		topicId := binary.BigEndian.Uint64(value[i : i+8])
 		t := mdm.loadTopic(topicId)
 		if t == nil {
 			log.Errorf("load topicId: %v but it doesn't exist.", topicId)
@@ -134,7 +132,7 @@ func (mdm *metadataManager) generateQueueId() (uint64, error) {
 func (mdm *metadataManager) getTopic(topicName string) *topic {
 	mdm.topicMapMutex.RLock()
 	defer mdm.topicMapMutex.RUnlock()
-	
+
 	t, exist := mdm.topicMap[topicName]
 	if !exist {
 		log.Infof("Topic: %s doesn't exist.", topicName)
@@ -155,7 +153,7 @@ func (mdm *metadataManager) putTopic(t *topic) error {
 	keys := make([][]byte, 2)
 	values := make([][]byte, 2)
 
-	keys[0] = []byte(TopicMetaPathPrefix +"allTopics")
+	keys[0] = []byte(TopicMetaPathPrefix + "allTopics")
 	value, err := mdm.tikvClient.Get(keys[0])
 
 	if err != nil {
@@ -165,7 +163,7 @@ func (mdm *metadataManager) putTopic(t *topic) error {
 
 	bytesOfUint64 := make([]byte, 8)
 	binary.BigEndian.PutUint64(bytesOfUint64, t.topicId)
-	values[0] = make([]byte, len(value) + 8)
+	values[0] = make([]byte, len(value)+8)
 	values[0][:len(value)] = value
 	values[0][len(value):] = bytesOfUint64
 
@@ -207,10 +205,10 @@ func (mdm *metadataManager) putQueue(q *Queue) error {
 
 func (mdm *metadataManager) encodeTopic(t *topic) []byte {
 	qStr := ""
-	for i := 0; i < len(t.queues) -1; i++  {
+	for i := 0; i < len(t.queues)-1; i++ {
 		qStr = fmt.Sprint("%s,%d", qStr, t.queues[i].queueId)
 	}
-	qStr = fmt.Sprint("%s,%d", qStr, t.queues[len(t.queues) - 1].queueId)
+	qStr = fmt.Sprint("%s,%d", qStr, t.queues[len(t.queues)-1].queueId)
 	str := fmt.Sprint("%d;%s;%s;%s,%v", t.topicId, t.path, t.topicName, qStr, t.autoScaling)
 
 	return []byte(str)
@@ -253,7 +251,7 @@ func (mdm *metadataManager) decodeTopic(data []byte) *topic {
 		}
 		t.queues = append(t.queues, q)
 	}
-	return t;
+	return t
 }
 
 func (mdm *metadataManager) encodeQueue(q *Queue) []byte {
@@ -269,8 +267,8 @@ func (mdm *metadataManager) decodeQueue(data []byte) *Queue {
 	}
 	v, err := strconv.Atoi(values[0])
 	if err != nil {
-		 log.Errorf("convert queueId error: %v, value: %s", err, values[0])
-		 return nil
+		log.Errorf("convert queueId error: %v, value: %s", err, values[0])
+		return nil
 	}
 	q.queueId = uint64(v)
 	q.path = values[1]
@@ -280,62 +278,5 @@ func (mdm *metadataManager) decodeQueue(data []byte) *Queue {
 		return nil
 	}
 	q.perm = pb.Permission(p)
-	return q;
-}
-
-type topic struct {
-	topicId uint64
-	path string
-	topicName string
-	queues []*Queue
-	autoScaling bool
-}
-
-type Queue struct {
-	queueId uint64
-
-	// TopicMetaPathPrefix + /topicId
-	path string
-	perm pb.Permission
-
-	mutex sync.Mutex
-	// -1 is none
-	assignedBroker *BrokerInfo
-	//assignedConsumer uint64
-}
-
-func (q *Queue) QueueId() uint64 {
-	return q.queueId;
-}
-
-func (q *Queue) Path() string {
-	return q.path;
-}
-
-func (q *Queue) Permission() pb.Permission {
-	return q.perm;
-}
-
-func (q *Queue) assignBroker(info *BrokerInfo) bool {
-	q.mutex.Lock()
-	defer q.mutex.Unlock()
-	if q.assignedBroker != nil {
-		return false
-	}
-
-	q.assignedBroker = info
-	return true
-}
-
-func (q *Queue) MinimumOffset() uint64 {
-	return 0;
-}
-
-func (q *Queue) MaximumOffset() uint64 {
-	return 0
-}
-
-type BrokerInfo struct {
-	brokerId uint64;
-	address string;
+	return q
 }
