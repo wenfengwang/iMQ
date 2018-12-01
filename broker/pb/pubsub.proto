@@ -1,14 +1,32 @@
 syntax = "proto3";
 
-service Pub {
-    rpc Publish(PublishRequest) returns(PublishResponse)
+package pb;
+
+import "msg.proto";
+
+service PubSub {
+    rpc Publish(stream PublishRequest) returns(stream PublishResponse);
+    rpc Subscribe(SubscribeRequest) returns (stream msg.Message)
+    rpc PullMessage(stream PullMessageRequest) returns (stream PullMessageResponse)
 
 }
 
 message PublishRequest {
-
+    repeated string Message = 2;
 }
 
 message PublishResponse {
+
+}
+
+message SubscribeRequest {
+
+}
+
+message PullMessageRequest {
+
+}
+
+message PullMessageResponse {
 
 }

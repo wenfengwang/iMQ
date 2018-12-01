@@ -47,7 +47,7 @@ message BrokerHBRequest {
 }
 
 message BrokerHBResponse {
-    repeated Queue queues = 1;
+    repeated uint64 queues = 1;
 }
 
 
@@ -61,18 +61,15 @@ message UpdateRouteRequest {
 }
 
 message UpdateRouteResponse {
-//    Response
-    repeated Lease leases = 1;
+    uint64 id = 1;
+    repeated Lease leases = 2;
 }
 
 message Lease {
     string brokerAddr = 1;
-    uint64 expired = 2;
-}
-
-message Queue {
-    uint64 id = 1;
-    Permission perm = 2;
+    uint64 id = 2;
+    uint64 expired = 3;
+    Permission perm = 4;
 }
 
 enum Permission {

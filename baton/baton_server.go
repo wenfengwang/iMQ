@@ -6,6 +6,12 @@ import (
 	. "github.com/wenfengwang/iMQ/baton/pb"
 	"sync/atomic"
 	"time"
+	"github.com/pkg/errors"
+)
+
+var (
+	ErrTopicNotFound = errors.New("topic not found.")
+	ErrSubscriptionNotFound = errors.New("subscription not found")
 )
 
 type batonServer struct {

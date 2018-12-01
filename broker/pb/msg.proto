@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package msg;
+
 message Message {
     int64 messageId = 1;
     string body = 2;

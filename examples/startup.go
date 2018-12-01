@@ -1,8 +1,7 @@
-package main
+package examples
 
 import (
 	"fmt"
-	"github.com/wenfengwang/iMQ/baton"
 	"github.com/wenfengwang/iMQ/baton/pb"
 	"google.golang.org/grpc"
 	"net"
@@ -17,7 +16,7 @@ func main() {
 	var opts []grpc.ServerOption
 
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterBatonServer(grpcServer, baton.NewBatonServer())
+	pb.RegisterBatonServer(grpcServer, NewBatonServer())
 	fmt.Println("baton server started...")
 	grpcServer.Serve(listen)
 	fmt.Println("baton server started...")
