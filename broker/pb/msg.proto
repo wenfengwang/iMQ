@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package msg;
+package brokerpb;
 
 message Message {
     int64 messageId = 1;
     string body = 2;
-    int32 queueId = 3;
+    uint64 queueId = 3;
     map<string, string> properties = 4;
 }

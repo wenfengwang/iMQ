@@ -18,6 +18,7 @@ var (
 var (
 	producerIdGenerator uint64 = 0
 	consumerIdGenerator uint64 = 0
+	brokerIdGenerator   uint64 = 0
 )
 
 type batonServer struct {
@@ -51,7 +52,7 @@ func (s *batonServer) CreateTopic(ctx context.Context, request *CreateTopicReque
 	t.queues = make([]*Queue, request.QueueNumbers)
 	t.path = TopicMetaPathPrefix + fmt.Sprint(t.topicId)
 	var i int32
-	for i = 0; i< request.QueueNumbers; i++ {
+	for i = 0; i < request.QueueNumbers; i++ {
 		qId, _ := s.mdm.generateQueueId()
 		q := &Queue{queueId: qId, path: QueueMetaPathPrefix + fmt.Sprint(qId), perm: Permission_READ_WRITE}
 		s.mdm.putQueue(q) // TODO error
@@ -78,8 +79,10 @@ func (s *batonServer) BrokerHeartBeat(ctx context.Context, request *BrokerHBRequ
 	return nil, nil
 }
 
-func (s *batonServer) RegisterBroker(ctx context.Context, request *RegisterBrokerRequest) (*Response, error) {
-	return nil, nil
+func (s *batonServer) RegisterBroker(ctx context.Context, request *RegisterBrokerRequest) (*RegisterBrokerResponse, error) {
+	info := &BrokerInfo{brokerId: atomic.AddUint64(&brokerIdGenerator, 1), address: request.Addr}
+	s.rm.brokerOnline(info)
+	return &RegisterBrokerResponse{Id: info.brokerId}, nil
 }
 
 func (s *batonServer) UpdateRoute(ctx context.Context, request *UpdateRouteRequest) (*UpdateRouteResponse, error) {

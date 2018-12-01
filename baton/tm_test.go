@@ -1,8 +1,8 @@
 package baton
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestQueue_QueueId(t *testing.T) {

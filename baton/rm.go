@@ -14,11 +14,13 @@ const (
 )
 
 type routeManager struct {
-	mdm *metadataManager
+	mdm     *metadataManager
+	brokers []*BrokerInfo
+	count   int
 }
 
 func (rm *routeManager) brokerOnline(info *BrokerInfo) {
-
+	rm.brokers = append(rm.brokers, info)
 }
 
 func (rm *routeManager) brokerOffline(info *BrokerInfo) {
@@ -34,7 +36,7 @@ func (rm *routeManager) updateRouteLeaseForProducer(producerId uint64, t *topic)
 
 	if qs == nil {
 		if !t.addProducer(producerId) {
-			if t.autoScaling  {
+			if t.autoScaling {
 				rm.mdm.scale(t)
 			} else {
 				return nil
@@ -51,10 +53,13 @@ func (rm *routeManager) updateRouteLeaseForProducer(producerId uint64, t *topic)
 
 	leases := make([]*pb.Lease, len(qs))
 
-	for i :=0; i < len(qs); i++ {
+	for i := 0; i < len(qs); i++ {
 		qStats := qs[i].status
+		if qStats.brokerForPub == nil {
+			qStats.brokerForPub = rm.selectBroker()
+		}
 		leases[i] = &pb.Lease{
-			BrokerId: qStats.brokerForPub.brokerId,
+			BrokerId:   qStats.brokerForPub.brokerId,
 			BrokerAddr: qStats.brokerForPub.address,
 		}
 	}
@@ -70,20 +75,28 @@ func (rm *routeManager) updateRouteLeaseForConsumer(consumerId uint64, t *topic)
 	qs := t.getQueueForConsumer(consumerId)
 
 	// Don't support scale for consumer
-	if qs == nil || len(qs) == 0{
+	if qs == nil || len(qs) == 0 {
 		return nil
 	}
 
 	leases := make([]*pb.Lease, len(qs))
-	for i :=0; i < len(qs); i++ {
+	for i := 0; i < len(qs); i++ {
 		qStats := qs[i].status
+		if qStats.brokerForSub == nil {
+			qStats.brokerForSub = rm.selectBroker()
+		}
 		leases[i] = &pb.Lease{
-			BrokerId: qStats.brokerForSub.brokerId,
+			BrokerId:   qStats.brokerForSub.brokerId,
 			BrokerAddr: qStats.brokerForSub.address,
 		}
 	}
 
 	return leases
+}
+
+func (rm *routeManager) selectBroker() *BrokerInfo {
+	count++
+	return rm.brokers[rm.count%len(rm.brokers)]
 }
 
 type topic struct {
@@ -229,12 +242,10 @@ type Queue struct {
 	queueId uint64
 
 	// TopicMetaPathPrefix + /topicId
-	path string
-	perm pb.Permission
-
+	path   string
+	perm   pb.Permission
 	mutex  sync.Mutex
 	status *QueueStatus
-	//assignedConsumer uint64
 }
 
 func (q *Queue) QueueId() uint64 {
@@ -248,18 +259,6 @@ func (q *Queue) Path() string {
 func (q *Queue) Permission() pb.Permission {
 	return q.perm
 }
-
-//
-//func (q *Queue) assignBroker(info *BrokerInfo) bool {
-//	q.mutex.Lock()
-//	defer q.mutex.Unlock()
-//	if q.assignedBroker != nil {
-//		return false
-//	}
-//
-//	q.assignedBroker = info
-//	return true
-//}
 
 func (q *Queue) MinimumOffset() uint64 {
 	return 0
