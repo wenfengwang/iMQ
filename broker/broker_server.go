@@ -1,56 +1,122 @@
 package broker
 
 import (
+	"context"
+	"fmt"
 	"github.com/golang/protobuf/proto"
+	"github.com/pingcap/tidb/config"
 	"github.com/pingcap/tidb/store/tikv"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+	"github.com/wenfengwang/iMQ/baton/pb"
 	pb "github.com/wenfengwang/iMQ/broker/pb"
+	"google.golang.org/grpc"
 	"io"
-	"sync"
 )
 
-func NewPubSubServer() pb.PubSubServer {
-	return &broker{}
+var (
+	ErrRouteNotFound = errors.New("ErrRouteNotFound")
+)
+
+type BrokerConfig struct {
+	PD           []string
+	Address      string
+	BatonAddress string
+}
+
+func NewPubSubServer(cfg BrokerConfig) pb.PubSubServer {
+	tikvClient, err := tikv.NewRawKVClient(cfg.PD, config.Security{})
+	if err != nil {
+		panic(fmt.Sprintf("create TiKV client error: %v", err))
+	}
+
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithInsecure())
+	conn, err := grpc.Dial(cfg.BatonAddress, opts...)
+	if err != nil {
+		panic(fmt.Sprintf("Dial to Baton: %s error: %v", cfg.Address, err))
+	}
+
+	return &broker{qm: &QueueManager{tikvClient: tikvClient}, cfg: cfg, tikvClient: tikvClient,
+		batonClient: batonpb.NewBatonClient(conn)}
 }
 
 type broker struct {
-	queueMap   sync.Map
-	tikvClient *tikv.RawKVClient
+	brokerId    uint64
+	qm          *QueueManager
+	cfg         BrokerConfig
+	tikvClient  *tikv.RawKVClient
+	batonClient batonpb.BatonClient
 }
 
-func (b *broker) Publish(stream pb.PubSub_PublishServer) error {
-	ch := make(chan error)
+func (b *broker) register() {
+	response, err := b.batonClient.RegisterBroker(context.Background(),
+		&batonpb.RegisterBrokerRequest{Addr: b.cfg.Address})
+	if err != nil {
+		panic(fmt.Sprintf("start broker error: %v", err))
+	}
+	b.brokerId = response.Id
+}
+
+func (b *broker) Publish(ctx context.Context, request *pb.PublishRequest) (*pb.PublishResponse, error) {
 	var q Queue
-	for {
-		req, err := stream.Recv()
-		if err == io.EOF {
-			ch <- nil
-			break
+	values := make([][]byte, len(request.Msg))
+	for index, msg := range request.Msg {
+		if q == nil {
+			q = b.qm.getQueue(msg.QueueId)
 		}
-		values := make([][]byte, len(req.Msg))
-		for index, msg := range req.Msg {
-			if q == nil {
-				v, exist := b.queueMap.Load(msg.QueueId)
-				if exist {
-					q = v.(Queue)
-				} else {
-					q = NewQueue(msg.QueueId, b.tikvClient)
-				}
-			}
-			values[index], _ = proto.Marshal(msg)
-		}
-		q.Put(values)
+		//if q == nil {
+		//	return
+		//}
+		log.Debugf("received message: %s", msg.Body)
+		values[index], _ = proto.Marshal(msg)
 	}
 
-	return <-ch
+	err := q.Put(values)
+	return &pb.PublishResponse{}, err
 }
 
 func (b *broker) Subscribe(request *pb.SubscribeRequest, stream pb.PubSub_SubscribeServer) error {
+	q := b.qm.getQueue(request.QueueId)
+	if q == nil {
+		return ErrRouteNotFound
+	}
 
-	//stream.
-	return nil
+	ch := make(chan error)
+	go func() {
+		for {
+			values, _ := q.Get(16)
+			for _, v := range values {
+				msg := &pb.Message{}
+				proto.Unmarshal(v, msg)
+				stream.Send(msg)
+			}
+		}
+	}()
+	return <-ch
 }
 
 func (b *broker) PullMessage(stream pb.PubSub_PullMessageServer) error {
+	log.Info("pull message...")
+	for {
+		request, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if request == nil {
+			 return nil
+		}
+		q := b.qm.getQueue(request.QueueId)
+
+		values, _ :=  q.Get(int(request.Numbers))
+		msgs := make([]*pb.Message, request.Numbers)
+		for index, v := range values {
+			msg := &pb.Message{}
+			proto.Unmarshal(v, msg)
+			msgs[index] = msg
+		}
+		stream.Send(&pb.PullMessageResponse{Msg: msgs})
+	}
 
 	//stream.
 	return nil

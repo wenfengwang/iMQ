@@ -34,7 +34,7 @@ func NewBatonServer(pdAddrs []string) BatonServer {
 	}
 	mdm := &metadataManager{tikvClient: tikvClient}
 	mdm.init()
-	return &batonServer{mdm, &routeManager{mdm}, 0}
+	return &batonServer{mdm, &routeManager{mdm: mdm}, 0}
 }
 
 var count int64 = 0

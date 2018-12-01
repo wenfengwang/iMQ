@@ -5,7 +5,7 @@ package brokerpb;
 import "msg.proto";
 
 service PubSub {
-    rpc Publish(stream PublishRequest) returns(PublishResponse);
+    rpc Publish(PublishRequest) returns(PublishResponse);
     rpc Subscribe(SubscribeRequest) returns (stream brokerpb.Message);
     rpc PullMessage(stream PullMessageRequest) returns (stream PullMessageResponse);
 }
