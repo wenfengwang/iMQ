@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package clientpb;
+
+enum PublishResult {
+    SUCCESS = 0;
+    FAILED = 1;
+}
+
+enum ConsumeResult {
+    OK = 0;
+    RETRY = 1;
+}
