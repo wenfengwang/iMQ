@@ -77,6 +77,7 @@ message Lease {
     string brokerAddr = 2;
     uint64 expiredTime = 3;
     Permission perm = 4;
+    uint64 queueId = 5;
 }
 
 enum Permission {
@@ -91,6 +92,10 @@ message Response {
 //    extensions 16 to 127;
 }
 
+message BrokerInfo {
+    uint64 brokerId = 1;
+    string address = 2;
+}
 enum Code {
     SUCCESS = 0;
     FAILED = 1;

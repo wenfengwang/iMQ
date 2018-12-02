@@ -5,23 +5,23 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/wenfengwang/iMQ/baton"
 	"github.com/wenfengwang/iMQ/broker/pb"
 	"google.golang.org/grpc"
 	"sync"
 	"sync/atomic"
+	"github.com/wenfengwang/iMQ/baton/pb"
 )
 
-type BrokerCenter struct {
+type BrokerHub struct {
 	brokerMap sync.Map
 }
 
-func (bc *BrokerCenter) getBroker(info *baton.BrokerInfo) *pubsub {
-	b, exist := bc.brokerMap.Load(info.BrokerId())
+func (bh *BrokerHub) getBroker(info *batonpb.BrokerInfo) *pubsub {
+	b, exist := bh.brokerMap.Load(info.BrokerId)
 	if !exist {
-		pb := newPubSub(info.Address(), info.BrokerId())
+		pb := newPubSub(info.Address, info.BrokerId)
 		var stored bool
-		b, stored = bc.brokerMap.LoadOrStore(info.BrokerId(), pb)
+		b, stored = bh.brokerMap.LoadOrStore(info.BrokerId, pb)
 		if !stored {
 			pb.start()
 		}

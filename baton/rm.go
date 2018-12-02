@@ -15,15 +15,15 @@ const (
 
 type routeManager struct {
 	mdm     *metadataManager
-	brokers []*BrokerInfo
+	brokers []*pb.BrokerInfo
 	count   int
 }
 
-func (rm *routeManager) brokerOnline(info *BrokerInfo) {
+func (rm *routeManager) brokerOnline(info *pb.BrokerInfo) {
 	rm.brokers = append(rm.brokers, info)
 }
 
-func (rm *routeManager) brokerOffline(info *BrokerInfo) {
+func (rm *routeManager) brokerOffline(info *pb.BrokerInfo) {
 
 }
 
@@ -59,8 +59,8 @@ func (rm *routeManager) updateRouteLeaseForProducer(producerId uint64, t *topic)
 			qStats.brokerForPub = rm.selectBroker()
 		}
 		leases[i] = &pb.Lease{
-			BrokerId:   qStats.brokerForPub.brokerId,
-			BrokerAddr: qStats.brokerForPub.address,
+			BrokerId:   qStats.brokerForPub.BrokerId,
+			BrokerAddr: qStats.brokerForPub.Address,
 		}
 	}
 
@@ -86,15 +86,15 @@ func (rm *routeManager) updateRouteLeaseForConsumer(consumerId uint64, t *topic)
 			qStats.brokerForSub = rm.selectBroker()
 		}
 		leases[i] = &pb.Lease{
-			BrokerId:   qStats.brokerForSub.brokerId,
-			BrokerAddr: qStats.brokerForSub.address,
+			BrokerId:   qStats.brokerForSub.BrokerId,
+			BrokerAddr: qStats.brokerForSub.Address,
 		}
 	}
 
 	return leases
 }
 
-func (rm *routeManager) selectBroker() *BrokerInfo {
+func (rm *routeManager) selectBroker() *pb.BrokerInfo {
 	count++
 	return rm.brokers[rm.count%len(rm.brokers)]
 }
@@ -268,29 +268,16 @@ func (q *Queue) MaximumOffset() uint64 {
 	return 0
 }
 
-type BrokerInfo struct {
-	brokerId uint64
-	address  string
-}
-
-func (info *BrokerInfo) BrokerId() uint64 {
-	return info.brokerId
-}
-
-func (info *BrokerInfo) Address() string {
-	return info.address
-}
-
 type QueueStatus struct {
 	curPID       uint64
 	nextPID      uint64
 	pExpired     int64
 	pMutex       sync.RWMutex
-	brokerForPub *BrokerInfo
+	brokerForPub *pb.BrokerInfo
 
 	curCID       uint64
 	nextCID      uint64
 	cExpired     int64
 	cMutex       sync.RWMutex
-	brokerForSub *BrokerInfo
+	brokerForSub *pb.BrokerInfo
 }
