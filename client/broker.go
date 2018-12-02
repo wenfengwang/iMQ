@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/wenfengwang/iMQ/baton/pb"
 	"github.com/wenfengwang/iMQ/broker/pb"
 	"google.golang.org/grpc"
 	"sync"
 	"sync/atomic"
-	"github.com/wenfengwang/iMQ/baton/pb"
 )
 
 type BrokerHub struct {

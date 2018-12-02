@@ -5,6 +5,7 @@ package clientpb;
 enum PublishResult {
     SUCCESS = 0;
     FAILED = 1;
+    NO_QUEUE_ROUTE = 2;
 }
 
 enum ConsumeResult {

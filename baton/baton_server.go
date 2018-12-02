@@ -80,9 +80,9 @@ func (s *batonServer) BrokerHeartBeat(ctx context.Context, request *BrokerHBRequ
 }
 
 func (s *batonServer) RegisterBroker(ctx context.Context, request *RegisterBrokerRequest) (*RegisterBrokerResponse, error) {
-	info := &BrokerInfo{brokerId: atomic.AddUint64(&brokerIdGenerator, 1), address: request.Addr}
+	info := &BrokerInfo{BrokerId: atomic.AddUint64(&brokerIdGenerator, 1), Address: request.Addr}
 	s.rm.brokerOnline(info)
-	return &RegisterBrokerResponse{Id: info.brokerId}, nil
+	return &RegisterBrokerResponse{Id: info.BrokerId}, nil
 }
 
 func (s *batonServer) UpdateRoute(ctx context.Context, request *UpdateRouteRequest) (*UpdateRouteResponse, error) {

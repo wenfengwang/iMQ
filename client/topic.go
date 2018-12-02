@@ -3,7 +3,13 @@ package client
 import (
 	"github.com/wenfengwang/iMQ/broker/pb"
 	pb "github.com/wenfengwang/iMQ/client/pb"
+	"sync"
 )
+
+var BatonAddress string
+
+var mutex sync.Mutex
+var rHub *RouteHub
 
 type Topic interface {
 	Publish(*brokerpb.Message) pb.PublishResult
@@ -14,10 +20,46 @@ type Topic interface {
 }
 
 type Subscription interface {
-	Pull(int32) PullResult
+	Pull(int32) []*brokerpb.Message
 	Push(func([]*brokerpb.Message) pb.ConsumeResult)
 }
 
 func NewTopic(topicName string) Topic {
-	return nil
+	if rHub == nil {
+		mutex.Lock()
+		rHub = &RouteHub{batonAddress: BatonAddress}
+		rHub.start()
+		mutex.Unlock()
+	}
+	return &entry{p: &producer{pId: -1, topicName: topicName}}
+}
+
+type entry struct {
+	p    *producer
+	cMap sync.Map
+}
+
+func (e *entry) Publish(msg *brokerpb.Message) pb.PublishResult {
+	return e.p.Publish(msg)
+}
+
+func (e *entry) PublishBatch(msgs []*brokerpb.Message) pb.PublishResult {
+	return e.p.PublishBatch(msgs)
+}
+
+func (e *entry) PublishAsync(msg *brokerpb.Message, f func(pb.PublishResult)) {
+	e.p.PublishAsync(msg, f)
+}
+
+func (e *entry) PublishBatchAsync(msgs []*brokerpb.Message, f func(pb.PublishResult)) {
+	e.p.PublishBatchAsync(msgs, f)
+}
+
+func (e *entry) Subscribe(name string) Subscription {
+	con, exist := e.cMap.Load(name)
+
+	if !exist {
+		con, _ = e.cMap.LoadOrStore(name, &consumer{-1, name})
+	}
+	return con.(*consumer)
 }
