@@ -4,6 +4,8 @@ import (
 	pb "github.com/wenfengwang/iMQ/baton/pb"
 	"sync"
 	"time"
+	log "github.com/sirupsen/logrus"
+	"fmt"
 )
 
 // TODO 后期实现Subscription
@@ -96,7 +98,7 @@ func (rm *routeManager) updateRouteLeaseForConsumer(consumerId uint64, t *topic)
 
 func (rm *routeManager) selectBroker() *pb.BrokerInfo {
 	count++
-	return rm.brokers[rm.count%len(rm.brokers)]
+	return rm.brokers[rm.count % len(rm.brokers)]
 }
 
 type topic struct {
@@ -148,12 +150,13 @@ func (t *topic) getQueueForConsumer(cId uint64) []*Queue {
 }
 
 func (t *topic) addProducer(pId uint64) bool {
+	log.Info(fmt.Sprintf("add producer: %d", pId))
 	_, exist := t.status.producers[pId]
 	if exist {
 		return true
 	}
 	status := t.status
-	if len(t.queues) >= len(status.producers) {
+	if len(t.queues) <= len(status.producers) {
 		return false
 	}
 

@@ -37,6 +37,7 @@ type pubsub struct {
 	pullExitCh      chan interface{}
 	requestIdGen    uint64
 	pullResultChMap sync.Map
+	mutex sync.Mutex
 }
 
 func newPubSub(address string, brokerId uint64) *pubsub {
@@ -54,25 +55,29 @@ func (b *pubsub) start() error {
 	log.Info("Dial to %s success\n", b.address)
 	b.client = brokerpb.NewPubSubClient(conn)
 	b.pullMsgClient, _ = b.client.PullMessage(context.Background())
-	go func() {
-		for {
-			select {
-			case <-b.pullExitCh:
-				break
-			default:
-				res, _ := b.pullMsgClient.Recv()
-				if res == nil {
+	for i :=0; i < 4 ; i++  {
+		go func() {
+			for {
+				select {
+				case <-b.pullExitCh:
 					break
+				default:
+					res, _ := b.pullMsgClient.Recv()
+					if res == nil {
+						break
+					}
+					ch, exist := b.pullResultChMap.Load(res.ResponseId)
+
+					if !exist {
+						continue
+					}
+					b.pullResultChMap.Delete(res.ResponseId)
+					ch.(chan *brokerpb.PullMessageResponse) <- res
 				}
-				ch, exist := b.pullResultChMap.Load(res.ResponseId)
-				if !exist {
-					continue
-				}
-				b.pullResultChMap.Delete(res.ResponseId)
-				ch.(chan *brokerpb.PullMessageResponse) <- res
 			}
-		}
-	}()
+		}()
+	}
+
 
 	return nil
 }
@@ -91,8 +96,13 @@ func (b *pubsub) subscribe(request *brokerpb.SubscribeRequest) (brokerpb.PubSub_
 }
 
 func (b *pubsub) pullMessage(request *brokerpb.PullMessageRequest, ch chan *brokerpb.PullMessageResponse) error {
-	request.RequestId = atomic.AddUint64(&b.requestIdGen, 1)
+	//b.mutex.Lock()
+	//request.RequestId = b.requestIdGen
+	//b.requestIdGen++
+	//b.mutex.Unlock()
+	atomic.AddUint64(&b.requestIdGen, 1)
 	b.pullMsgClient.Send(request)
+	//fmt.Println("request id", request.RequestId)
 	b.pullResultChMap.Store(request.RequestId, ch)
 	return nil
 }

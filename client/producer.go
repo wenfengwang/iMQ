@@ -2,11 +2,11 @@ package client
 
 import "github.com/wenfengwang/iMQ/broker/pb"
 import (
-	"github.com/wenfengwang/iMQ/baton/pb"
 	pb "github.com/wenfengwang/iMQ/client/pb"
 	"sync"
 	"sync/atomic"
-	"time"
+	"github.com/wenfengwang/iMQ/baton/pb"
+	"github.com/prometheus/common/log"
 )
 
 type producer struct {
@@ -48,20 +48,32 @@ func (p *producer) PublishBatchAsync([]*brokerpb.Message, func(pb.PublishResult)
 }
 
 func (p *producer) start() {
-	go func() {
-		ticker := time.NewTicker(20 * time.Second)
-		for {
-			select {
-			case <-ticker.C:
-				newRoutes := rHub.getQueueRoute(batonpb.Action_PUB, p.pId, p.topicName)
-				p.mutex.Lock()
-				p.routes = newRoutes
-				p.mutex.RUnlock()
-			case <-p.quitCh:
-				return
+	getRoute := func() {
+		newRoutes := rHub.getQueueRoute(batonpb.Action_PUB, p.pId, p.topicName)
+		if newRoutes != nil{
+			for _, r := range newRoutes {
+				log.Infof("got Route[queueId: %d, brokerAddress: %s, brokerId: %d]",
+					r.queueId, r.broker.address, r.broker.brokerId)
 			}
+		} else {
+			log.Info("none route got")
 		}
-	}()
+		p.mutex.Lock()
+		defer p.mutex.Unlock()
+		p.routes = newRoutes
+	}
+	getRoute()
+	//go func() {
+	//	ticker := time.NewTicker(20 * time.Second)
+	//	for {
+	//		select {
+	//		case <-ticker.C:
+	//			getRoute()
+	//		case <-p.quitCh:
+	//			return
+	//		}
+	//	}
+	//}()
 }
 
 func (p *producer) shutdown() {

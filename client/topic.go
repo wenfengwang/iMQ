@@ -31,7 +31,7 @@ func NewTopic(topicName string) Topic {
 		rHub.start()
 		mutex.Unlock()
 	}
-	return &entry{p: &producer{pId: -1, topicName: topicName}}
+	return &entry{p: &producer{pId: 0, topicName: topicName}}
 }
 
 type entry struct {
@@ -59,7 +59,7 @@ func (e *entry) Subscribe(name string) Subscription {
 	con, exist := e.cMap.Load(name)
 
 	if !exist {
-		con, _ = e.cMap.LoadOrStore(name, &consumer{-1, name})
+		con, _ = e.cMap.LoadOrStore(name, &consumer{cId: 0, topicName: name})
 	}
 	return con.(*consumer)
 }

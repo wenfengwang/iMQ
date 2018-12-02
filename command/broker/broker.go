@@ -16,7 +16,7 @@ var (
 	pd        = flag.String("pd", "", "pd server address")
 	localIP   = flag.String("local-ip", "localhost", "address register to baton")
 	port      = flag.Int("port", 23456, "server port")
-	batonAddr = flag.String("baton-addr", "", "baton ip:port address")
+	batonAddr = flag.String("baton-addr", "localhost:30000", "baton ip:port address")
 )
 
 func main() {

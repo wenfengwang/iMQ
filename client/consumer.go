@@ -5,6 +5,8 @@ import (
 	pb "github.com/wenfengwang/iMQ/client/pb"
 	"sync"
 	"sync/atomic"
+	"github.com/wenfengwang/iMQ/baton/pb"
+	"github.com/prometheus/common/log"
 )
 
 type consumer struct {
@@ -29,6 +31,35 @@ func (c *consumer) Pull(numbers int32) []*brokerpb.Message {
 
 func (c *consumer) Push(func([]*brokerpb.Message) pb.ConsumeResult) {
 
+}
+
+func (c *consumer) start() {
+	getRoute := func() {
+		newRoutes := rHub.getQueueRoute(batonpb.Action_SUB, c.cId, c.topicName)
+		if newRoutes != nil{
+			for _, r := range newRoutes {
+				log.Infof("got Route[queueId: %d, brokerAddress: %s, brokerId: %d]",
+					r.queueId, r.broker.address, r.broker.brokerId)
+			}
+		} else {
+			log.Info("none route got")
+		}
+		c.mutex.Lock()
+		defer c.mutex.Unlock()
+		c.routes = newRoutes
+	}
+	getRoute()
+	//go func() {
+	//	ticker := time.NewTicker(20 * time.Second)
+	//	for {
+	//		select {
+	//		case <-ticker.C:
+	//			getRoute()
+	//		case <-p.quitCh:
+	//			return
+	//		}
+	//	}
+	//}()
 }
 
 func (c *consumer) shutdown() {

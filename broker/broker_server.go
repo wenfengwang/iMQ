@@ -37,8 +37,10 @@ func NewPubSubServer(cfg BrokerConfig) pb.PubSubServer {
 		panic(fmt.Sprintf("Dial to Baton: %s error: %v", cfg.Address, err))
 	}
 
-	return &broker{qm: &QueueManager{tikvClient: tikvClient}, cfg: cfg, tikvClient: tikvClient,
+	b := &broker{qm: &QueueManager{tikvClient: tikvClient}, cfg: cfg, tikvClient: tikvClient,
 		batonClient: batonpb.NewBatonClient(conn)}
+	b.register()
+	return b
 }
 
 type broker struct {
@@ -115,7 +117,7 @@ func (b *broker) PullMessage(stream pb.PubSub_PullMessageServer) error {
 			proto.Unmarshal(v, msg)
 			msgs[index] = msg
 		}
-		stream.Send(&pb.PullMessageResponse{Msg: msgs})
+		stream.Send(&pb.PullMessageResponse{Msg: msgs, ResponseId: request.RequestId})
 	}
 
 	//stream.
