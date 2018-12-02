@@ -104,11 +104,11 @@ func (b *broker) PullMessage(stream pb.PubSub_PullMessageServer) error {
 			break
 		}
 		if request == nil {
-			 return nil
+			return nil
 		}
 		q := b.qm.getQueue(request.QueueId)
 
-		values, _ :=  q.Get(int(request.Numbers))
+		values, _ := q.Get(int(request.Numbers))
 		msgs := make([]*pb.Message, request.Numbers)
 		for index, v := range values {
 			msg := &pb.Message{}

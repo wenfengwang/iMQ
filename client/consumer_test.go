@@ -1,10 +1,10 @@
 package client
 
 import (
-	"testing"
 	"fmt"
 	"github.com/wenfengwang/iMQ/broker/pb"
 	"google.golang.org/grpc"
+	"testing"
 	"time"
 )
 
@@ -19,7 +19,7 @@ func TestConsumer_Pull(t *testing.T) {
 	fmt.Printf("Dial to %s success\n", "localhost:23456")
 	c := consumer{topicName: "testTopic", brokerClient: brokerpb.NewPubSubClient(conn)}
 
-	for  {
+	for {
 		msgs, _ := c.Pull(10e9+1, 16)
 		for _, v := range msgs {
 			fmt.Println("msg:", v.Body)

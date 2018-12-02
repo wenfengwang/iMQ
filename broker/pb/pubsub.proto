@@ -25,8 +25,10 @@ message SubscribeRequest {
 message PullMessageRequest {
     uint64 queueId = 1;
     int32 numbers = 2;
+    uint64 requestId =3;
 }
 
 message PullMessageResponse {
     repeated brokerpb.Message msg = 1;
+    uint64 responseId = 2;
 }

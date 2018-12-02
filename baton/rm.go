@@ -273,6 +273,14 @@ type BrokerInfo struct {
 	address  string
 }
 
+func (info *BrokerInfo) BrokerId() uint64 {
+	return info.brokerId
+}
+
+func (info *BrokerInfo) Address() string {
+	return info.address
+}
+
 type QueueStatus struct {
 	curPID       uint64
 	nextPID      uint64

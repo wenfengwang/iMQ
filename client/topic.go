@@ -5,8 +5,6 @@ import (
 	pb "github.com/wenfengwang/iMQ/client/pb"
 )
 
-
-
 type Topic interface {
 	Publish(*brokerpb.Message) pb.PublishResult
 	PublishBatch([]*brokerpb.Message) pb.PublishResult
@@ -18,12 +16,6 @@ type Topic interface {
 type Subscription interface {
 	Pull(int32) PullResult
 	Push(func([]*brokerpb.Message) pb.ConsumeResult)
-}
-
-type PullResult brokerpb.PullMessageResponse
-
-func (pr *PullResult) Ack() {
-	
 }
 
 func NewTopic(topicName string) Topic {

@@ -3,13 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/wenfengwang/iMQ/broker"
 	"github.com/wenfengwang/iMQ/broker/pb"
 	"google.golang.org/grpc"
 	"net"
-	"strings"
-	log "github.com/sirupsen/logrus"
 	"os"
+	"strings"
 )
 
 var (

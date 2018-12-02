@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/wenfengwang/iMQ/broker/pb"
 	"google.golang.org/grpc"
-	"testing"
 	"sync/atomic"
+	"testing"
 )
 
 func TestProducer_Publish(t *testing.T) {
@@ -24,7 +24,7 @@ func TestProducer_Publish(t *testing.T) {
 
 		//fmt.Println("prepare to send message...")
 		msgs := make([]*brokerpb.Message, batch)
-		for j := 0; j < batch ; j++  {
+		for j := 0; j < batch; j++ {
 			msgs[j] = &brokerpb.Message{MessageId: 10e12, QueueId: 10e9 + 1, Body: fmt.Sprint(i)}
 		}
 		err := p.Publish(msgs)
