@@ -6,7 +6,7 @@ import (
 	"github.com/pingcap/tidb/store/tikv"
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
-	pb "github.com/wenfengwang/iMQ/baton/pb"
+	"github.com/wenfengwang/iMQ/pb"
 	"strconv"
 	"strings"
 	"sync"

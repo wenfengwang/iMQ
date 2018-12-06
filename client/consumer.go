@@ -1,11 +1,9 @@
 package client
 
 import (
-	"github.com/wenfengwang/iMQ/broker/pb"
-	pb "github.com/wenfengwang/iMQ/client/pb"
 	"sync"
 	"sync/atomic"
-	"github.com/wenfengwang/iMQ/baton/pb"
+	"github.com/wenfengwang/iMQ/pb"
 	"github.com/prometheus/common/log"
 )
 
@@ -16,26 +14,26 @@ type consumer struct {
 	routes    []*QueueRoute
 	count     int64
 	quitCh    chan interface{}
-	pullMsgCh chan *brokerpb.PullMessageResponse
+	pullMsgCh chan *pb.PullMessageResponse
 }
 
-func (c *consumer) Pull(numbers int32) []*brokerpb.Message {
+func (c *consumer) Pull(numbers int32) []*pb.Message {
 	queue := c.getQueue()
 	if queue == nil {
 		return nil
 	}
-	queue.broker.pullMessage(&brokerpb.PullMessageRequest{QueueId: queue.queueId, Numbers: numbers}, c.pullMsgCh)
+	queue.broker.pullMessage(&pb.PullMessageRequest{QueueId: queue.queueId, Numbers: numbers}, c.pullMsgCh)
 	res := <-c.pullMsgCh
 	return res.Msg
 }
 
-func (c *consumer) Push(func([]*brokerpb.Message) pb.ConsumeResult) {
+func (c *consumer) Push(func([]*pb.Message) pb.ConsumeResult) {
 
 }
 
 func (c *consumer) start() {
 	getRoute := func() {
-		newRoutes := rHub.getQueueRoute(batonpb.Action_SUB, c.cId, c.topicName)
+		newRoutes := rHub.getQueueRoute(pb.Action_SUB, c.cId, c.topicName)
 		if newRoutes != nil{
 			for _, r := range newRoutes {
 				log.Infof("got Route[queueId: %d, brokerAddress: %s, brokerId: %d]",

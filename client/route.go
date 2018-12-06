@@ -5,14 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/prometheus/common/log"
-	"github.com/wenfengwang/iMQ/baton/pb"
+	"github.com/wenfengwang/iMQ/pb"
 	"google.golang.org/grpc"
 	"sync"
 )
 
 type RouteHub struct {
 	batonAddress  string
-	client        batonpb.BatonClient
+	client        pb.BatonClient
 	queueRouteMap sync.Map
 	topicRouteMap sync.Map
 	bh            *BrokerHub
@@ -33,27 +33,27 @@ func (rh *RouteHub) start() error {
 	}
 
 	log.Info("Dial to %s success\n", rh.batonAddress)
-	rh.client = batonpb.NewBatonClient(conn)
+	rh.client = pb.NewBatonClient(conn)
 	return nil
 }
 
-func (rh *RouteHub) helper() *batonpb.BrokerInfo{
+func (rh *RouteHub) helper() *pb.BrokerInfo{
 	//switch atomic.AddUint64(&rh.count,1) % 3 {
 	//case 0:
-	//	return &batonpb.BrokerInfo{BrokerId: 0, Address: "localhost:23456"}
+	//	return &pb.BrokerInfo{BrokerId: 0, Address: "localhost:23456"}
 	//case 1:
-	//	return &batonpb.BrokerInfo{BrokerId: 1, Address: "localhost:23456"}
+	//	return &pb.BrokerInfo{BrokerId: 1, Address: "localhost:23456"}
 	//case 2:
-	//	return &batonpb.BrokerInfo{BrokerId: 2, Address: "localhost:23456"}
+	//	return &pb.BrokerInfo{BrokerId: 2, Address: "localhost:23456"}
 	//}
-	return &batonpb.BrokerInfo{BrokerId: 0, Address: "localhost:23456"}
+	return &pb.BrokerInfo{BrokerId: 0, Address: "localhost:23456"}
 }
 
-func (rh *RouteHub) getQueueRoute(action batonpb.Action, id uint64, topicName string) []*QueueRoute {
+func (rh *RouteHub) getQueueRoute(action pb.Action, id uint64, topicName string) []*QueueRoute {
 	newRoutes := make([]*QueueRoute, 16)
 	for i := 0; i < 16 ; i++  {
 		newRoutes[i] = &QueueRoute{
-			queueId: 2*10e8 + uint64(i),
+			queueId: 5*10e8 + uint64(i),
 			broker: rHub.bh.getBroker(rh.helper()),
 		}
 	}
@@ -72,18 +72,18 @@ func (rh *RouteHub) getQueueRoute(action batonpb.Action, id uint64, topicName st
 	//return qrs.([]*QueueRoute)
 }
 
-func (rh *RouteHub) updateRouteInfo(action batonpb.Action, id uint64, name string) {
+func (rh *RouteHub) updateRouteInfo(action pb.Action, id uint64, name string) {
 	log.Infof("prepare updateRouteInfo for [Action: %s, instanceId: %d, topicName: %s]",
-		batonpb.Action_name[int32(action)], id, name)
+		pb.Action_name[int32(action)], id, name)
 
-	res, _ := rh.client.UpdateRoute(context.Background(), &batonpb.UpdateRouteRequest{Id: id, Name: name, Action: action})
+	res, _ := rh.client.UpdateRoute(context.Background(), &pb.UpdateRouteRequest{Id: id, Name: name, Action: action})
 	tr, _ := rh.topicRouteMap.Load(name)
 	if res != nil {
 		for _, le := range res.Leases {
 			queue, exist := rh.queueRouteMap.Load(le.QueueId)
 			if !exist {
 				nq := &QueueRoute{assignedId: id,
-					broker:  rh.bh.getBroker(&batonpb.BrokerInfo{BrokerId: le.BrokerId, Address: le.BrokerAddr}),
+					broker:  rh.bh.getBroker(&pb.BrokerInfo{BrokerId: le.BrokerId, Address: le.BrokerAddr}),
 					queueId: le.QueueId,
 					perm:    le.Perm}
 
@@ -111,5 +111,5 @@ type QueueRoute struct {
 	assignedId  uint64
 	broker      *pubsub
 	expiredTime uint64
-	perm        batonpb.Permission
+	perm        pb.Permission
 }

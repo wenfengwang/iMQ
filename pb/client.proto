@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package clientpb;
+package pb;
 
 enum PublishResult {
     SUCCESS = 0;

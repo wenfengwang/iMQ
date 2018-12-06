@@ -1,11 +1,9 @@
 package client
 
-import "github.com/wenfengwang/iMQ/broker/pb"
 import (
-	pb "github.com/wenfengwang/iMQ/client/pb"
+	"github.com/wenfengwang/iMQ/pb"
 	"sync"
 	"sync/atomic"
-	"github.com/wenfengwang/iMQ/baton/pb"
 	"github.com/prometheus/common/log"
 )
 
@@ -18,11 +16,11 @@ type producer struct {
 	quitCh    chan interface{}
 }
 
-func (p *producer) Publish(*brokerpb.Message) pb.PublishResult {
+func (p *producer) Publish(*pb.Message) pb.PublishResult {
 	return pb.PublishResult_SUCCESS
 }
 
-func (p *producer) PublishBatch(msgs []*brokerpb.Message) pb.PublishResult {
+func (p *producer) PublishBatch(msgs []*pb.Message) pb.PublishResult {
 	q := p.getQueue()
 	if q == nil {
 		return pb.PublishResult_NO_QUEUE_ROUTE
@@ -31,7 +29,7 @@ func (p *producer) PublishBatch(msgs []*brokerpb.Message) pb.PublishResult {
 	for _, msg := range msgs {
 		msg.QueueId = q.queueId
 	}
-	_, err := q.broker.publish(&brokerpb.PublishRequest{Msg: msgs})
+	_, err := q.broker.publish(&pb.PublishRequest{Msg: msgs})
 	if err != nil {
 		return pb.PublishResult_FAILED
 	}
@@ -39,17 +37,17 @@ func (p *producer) PublishBatch(msgs []*brokerpb.Message) pb.PublishResult {
 	return pb.PublishResult_SUCCESS
 }
 
-func (p *producer) PublishAsync(*brokerpb.Message, func(pb.PublishResult)) {
+func (p *producer) PublishAsync(*pb.Message, func(pb.PublishResult)) {
 
 }
 
-func (p *producer) PublishBatchAsync([]*brokerpb.Message, func(pb.PublishResult)) {
+func (p *producer) PublishBatchAsync([]*pb.Message, func(pb.PublishResult)) {
 
 }
 
 func (p *producer) start() {
 	getRoute := func() {
-		newRoutes := rHub.getQueueRoute(batonpb.Action_PUB, p.pId, p.topicName)
+		newRoutes := rHub.getQueueRoute(pb.Action_PUB, p.pId, p.topicName)
 		if newRoutes != nil{
 			for _, r := range newRoutes {
 				log.Infof("got Route[queueId: %d, brokerAddress: %s, brokerId: %d]",

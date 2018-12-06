@@ -6,7 +6,7 @@ import (
 	"github.com/pingcap/tidb/config"
 	"github.com/pingcap/tidb/store/tikv"
 	"github.com/pkg/errors"
-	. "github.com/wenfengwang/iMQ/baton/pb"
+	. "github.com/wenfengwang/iMQ/pb"
 	"sync/atomic"
 	log "github.com/sirupsen/logrus"
 )

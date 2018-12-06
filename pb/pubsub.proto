@@ -1,17 +1,17 @@
 syntax = "proto3";
 
-package brokerpb;
+package pb;
 
 import "msg.proto";
 
 service PubSub {
     rpc Publish(PublishRequest) returns(PublishResponse);
-    rpc Subscribe(SubscribeRequest) returns (stream brokerpb.Message);
+    rpc Subscribe(SubscribeRequest) returns (stream pb.Message);
     rpc PullMessage(stream PullMessageRequest) returns (stream PullMessageResponse);
 }
 
 message PublishRequest {
-    repeated brokerpb.Message msg = 1;
+    repeated pb.Message msg = 1;
 }
 
 message PublishResponse {
@@ -29,6 +29,6 @@ message PullMessageRequest {
 }
 
 message PullMessageResponse {
-    repeated brokerpb.Message msg = 1;
+    repeated pb.Message msg = 1;
     uint64 responseId = 2;
 }

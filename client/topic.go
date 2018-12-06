@@ -1,8 +1,7 @@
 package client
 
 import (
-	"github.com/wenfengwang/iMQ/broker/pb"
-	pb "github.com/wenfengwang/iMQ/client/pb"
+	"github.com/wenfengwang/iMQ/pb"
 	"sync"
 )
 
@@ -12,16 +11,16 @@ var mutex sync.Mutex
 var rHub *RouteHub
 
 type Topic interface {
-	Publish(*brokerpb.Message) pb.PublishResult
-	PublishBatch([]*brokerpb.Message) pb.PublishResult
-	PublishAsync(*brokerpb.Message, func(pb.PublishResult))
-	PublishBatchAsync([]*brokerpb.Message, func(pb.PublishResult))
+	Publish(*pb.Message) pb.PublishResult
+	PublishBatch([]*pb.Message) pb.PublishResult
+	PublishAsync(*pb.Message, func(pb.PublishResult))
+	PublishBatchAsync([]*pb.Message, func(pb.PublishResult))
 	Subscribe(string) Subscription
 }
 
 type Subscription interface {
-	Pull(int32) []*brokerpb.Message
-	Push(func([]*brokerpb.Message) pb.ConsumeResult)
+	Pull(int32) []*pb.Message
+	Push(func([]*pb.Message) pb.ConsumeResult)
 }
 
 func NewTopic(topicName string) Topic {
@@ -31,7 +30,9 @@ func NewTopic(topicName string) Topic {
 		rHub.start()
 		mutex.Unlock()
 	}
-	return &entry{p: &producer{pId: 0, topicName: topicName}}
+	pro := &producer{pId: 0, topicName: topicName}
+	pro.start()
+	return &entry{p: pro}
 }
 
 type entry struct {
@@ -39,19 +40,19 @@ type entry struct {
 	cMap sync.Map
 }
 
-func (e *entry) Publish(msg *brokerpb.Message) pb.PublishResult {
+func (e *entry) Publish(msg *pb.Message) pb.PublishResult {
 	return e.p.Publish(msg)
 }
 
-func (e *entry) PublishBatch(msgs []*brokerpb.Message) pb.PublishResult {
+func (e *entry) PublishBatch(msgs []*pb.Message) pb.PublishResult {
 	return e.p.PublishBatch(msgs)
 }
 
-func (e *entry) PublishAsync(msg *brokerpb.Message, f func(pb.PublishResult)) {
+func (e *entry) PublishAsync(msg *pb.Message, f func(pb.PublishResult)) {
 	e.p.PublishAsync(msg, f)
 }
 
-func (e *entry) PublishBatchAsync(msgs []*brokerpb.Message, f func(pb.PublishResult)) {
+func (e *entry) PublishBatchAsync(msgs []*pb.Message, f func(pb.PublishResult)) {
 	e.p.PublishBatchAsync(msgs, f)
 }
 
@@ -60,6 +61,7 @@ func (e *entry) Subscribe(name string) Subscription {
 
 	if !exist {
 		con, _ = e.cMap.LoadOrStore(name, &consumer{cId: 0, topicName: name})
+		con.(*consumer).start()
 	}
 	return con.(*consumer)
 }

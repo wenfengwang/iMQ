@@ -8,8 +8,7 @@ import (
 	"github.com/pingcap/tidb/store/tikv"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/wenfengwang/iMQ/baton/pb"
-	pb "github.com/wenfengwang/iMQ/broker/pb"
+	"github.com/wenfengwang/iMQ/pb"
 	"google.golang.org/grpc"
 	"io"
 )
@@ -38,7 +37,7 @@ func NewPubSubServer(cfg BrokerConfig) pb.PubSubServer {
 	}
 
 	b := &broker{qm: &QueueManager{tikvClient: tikvClient}, cfg: cfg, tikvClient: tikvClient,
-		batonClient: batonpb.NewBatonClient(conn)}
+		batonClient: pb.NewBatonClient(conn)}
 	b.register()
 	return b
 }
@@ -48,12 +47,12 @@ type broker struct {
 	qm          *QueueManager
 	cfg         BrokerConfig
 	tikvClient  *tikv.RawKVClient
-	batonClient batonpb.BatonClient
+	batonClient pb.BatonClient
 }
 
 func (b *broker) register() {
 	response, err := b.batonClient.RegisterBroker(context.Background(),
-		&batonpb.RegisterBrokerRequest{Addr: b.cfg.Address})
+		&pb.RegisterBrokerRequest{Addr: b.cfg.Address})
 	if err != nil {
 		panic(fmt.Sprintf("start broker error: %v", err))
 	}

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package brokerpb;
+package pb;
 
 message Message {
     int64 messageId = 1;

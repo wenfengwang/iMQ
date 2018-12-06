@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/prometheus/common/log"
-	"github.com/wenfengwang/iMQ/baton/pb"
+	"github.com/wenfengwang/iMQ/pb"
 	"google.golang.org/grpc"
 	"flag"
 	"context"
@@ -29,9 +29,9 @@ func main()  {
 	}
 
 	log.Info("Dial to %s success\n", *baton)
-	client := batonpb.NewBatonClient(conn)
+	client := pb.NewBatonClient(conn)
 	_, err = client.CreateTopic(context.Background(),
-		&batonpb.CreateTopicRequest{
+		&pb.CreateTopicRequest{
 			Name: *topicName,
 			QueueNumbers: int32(*queueNumbers),
 			AutoScaling: false})

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/wenfengwang/iMQ/broker"
-	"github.com/wenfengwang/iMQ/broker/pb"
+	"github.com/wenfengwang/iMQ/pb"
 	"google.golang.org/grpc"
 	"net"
 	"os"
@@ -30,7 +30,7 @@ func main() {
 
 	var opts []grpc.ServerOption
 	server := grpc.NewServer(opts...)
-	brokerpb.RegisterPubSubServer(server, broker.NewPubSubServer(broker.BrokerConfig{
+	pb.RegisterPubSubServer(server, broker.NewPubSubServer(broker.BrokerConfig{
 		PD:           strings.Split(*pd, ";"),
 		Address:      fmt.Sprintf("%s:%d", *localIP, *port),
 		BatonAddress: *batonAddr}))

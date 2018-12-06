@@ -1,5 +1,5 @@
 syntax = "proto3";
-package batonpb;
+package pb;
 
 //import "gogoproto/gogo.proto";
 //option (gogoproto.marshaler_all) = true;

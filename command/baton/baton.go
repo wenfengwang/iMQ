@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"google.golang.org/grpc"
-	"github.com/wenfengwang/iMQ/baton/pb"
+	"github.com/wenfengwang/iMQ/pb"
 	"github.com/wenfengwang/iMQ/baton"
 )
 
@@ -29,7 +29,7 @@ func main() {
 
 	var opts []grpc.ServerOption
 	server := grpc.NewServer(opts...)
-	batonpb.RegisterBatonServer(server, baton.NewBatonServer(strings.Split(*pd, ";")))
+	pb.RegisterBatonServer(server, baton.NewBatonServer(strings.Split(*pd, ";")))
 	log.Info("baton server started.")
 	server.Serve(listen)
 }

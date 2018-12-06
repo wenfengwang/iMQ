@@ -1,7 +1,7 @@
 package baton
 
 import (
-	pb "github.com/wenfengwang/iMQ/baton/pb"
+	"github.com/wenfengwang/iMQ/pb"
 	"sync"
 	"time"
 	log "github.com/sirupsen/logrus"
