@@ -12,13 +12,19 @@ import (
 	"sync"
 )
 
-var ()
-
 const (
 	TopicMetaPathPrefix  = "/imq/metadata/topic/"
 	QueueMetaPathPrefix  = "/imq/metadata/queue/"
+
+	allTopicsPath = TopicMetaPathPrefix + "allTopics"
 	topicIdGeneratorPath = "/imq/metadata/topic_generator"
 	queueIdGeneratorPath = "/imq/metadata/queue_generator"
+)
+
+var (
+	allTopicsPathKey = []byte(allTopicsPath)
+	topicIdGeneratorPathKey = []byte(topicIdGeneratorPath)
+	queueIdGeneratorPathKey = []byte(queueIdGeneratorPath)
 )
 
 var (
@@ -30,7 +36,7 @@ type metadataManager struct {
 	tikvClient *tikv.RawKVClient
 
 	topicMapMutex sync.RWMutex
-	topicMap      map[string]*topic
+	topicMap      map[uint64]*topic
 
 	queueMapMutex sync.RWMutex
 	queueMap      map[uint64]*Queue
@@ -43,36 +49,38 @@ type metadataManager struct {
 }
 
 func (mdm *metadataManager) init() {
-	value, err := mdm.tikvClient.Get([]byte(topicIdGeneratorPath))
+	value, err := mdm.tikvClient.Get(topicIdGeneratorPathKey)
 	if err != nil {
 		panic(fmt.Sprintf("error: %v, get topicIdGenerator FAILED !!!", err))
 	}
 
-	if len(value) == 8 {
-		mdm.topicIdGenerator = binary.BigEndian.Uint64(value)
+	if len(value) != 8 {
+		panic(fmt.Sprintf("topicIdGenerator value invalid!!! it's length should be 8, but is: %v", value))
 	}
+	mdm.topicIdGenerator = binary.BigEndian.Uint64(value)
 
-	value, err = mdm.tikvClient.Get([]byte(queueIdGeneratorPath))
+	value, err = mdm.tikvClient.Get(queueIdGeneratorPathKey)
 	if err != nil {
 		panic(fmt.Sprintf("error: %v, get queueIdGenerator FAILED !!!", err))
 	}
 
-	if len(value) == 8 {
-		mdm.queueIdGenerator = binary.BigEndian.Uint64(value)
+	if len(value) != 8 {
+		panic(fmt.Sprintf("queueIdGeneratorPathKey value invalid!!! it's length should be 8, but is: %v", value))
 	}
+	mdm.queueIdGenerator = binary.BigEndian.Uint64(value)
 	mdm.loadTopicsAndQueues()
 }
 
 func (mdm *metadataManager) loadTopicsAndQueues() {
-	mdm.topicMap = make(map[string]*topic)
+	mdm.topicMap = make(map[uint64]*topic)
 	mdm.queueMap = make(map[uint64]*Queue)
-	value, err := mdm.tikvClient.Get([]byte(TopicMetaPathPrefix + "/allTopics"))
+	value, err := mdm.tikvClient.Get(allTopicsPathKey)
 	if err != nil {
 		panic(fmt.Sprintf("error: %v, load topics FAILED !!!", err))
 	}
 
 	for i := 0; i < len(value); i += 8 {
-		topicId := binary.BigEndian.Uint64(value[i : i+8])
+		topicId := binary.BigEndian.Uint64(value[i:i+8])
 		t := mdm.loadTopic(topicId)
 		if t == nil {
 			log.Errorf("load topicId: %v but it doesn't exist.", topicId)
@@ -81,18 +89,18 @@ func (mdm *metadataManager) loadTopicsAndQueues() {
 		for j := 0; j < len(t.queues); j++ {
 			mdm.queueMap[t.queues[i].queueId] = t.queues[i]
 		}
-		mdm.topicMap[t.topicName] = t
+		mdm.topicMap[t.topicId] = t
 	}
 }
 
 func (mdm *metadataManager) loadTopic(topicId uint64) *topic {
-	value, err := mdm.tikvClient.Get([]byte(TopicMetaPathPrefix + fmt.Sprint(topicId)))
+	value, err := mdm.tikvClient.Get(keyJoin(TopicMetaPathPrefix, fmt.Sprint(topicId)))
 	if err != nil {
-		log.Errorf("load topic with Id error: %v", err)
+		log.Errorf("load topic with Id: %v error: %v", topicId, err)
 		return nil
 	}
 
-	return mdm.decodeTopic(value)
+	return decodeTopic(value)
 }
 
 func (mdm *metadataManager) loadQueue(queueId uint64) *Queue {
@@ -140,7 +148,7 @@ func (mdm *metadataManager) getTopic(topicName string) *topic {
 	mdm.topicMapMutex.RLock()
 	defer mdm.topicMapMutex.RUnlock()
 
-	t, _ := mdm.topicMap[topicName]
+	t, _ := mdm.topicMap[1] // TODO
 	if t == nil {
 		log.Info(fmt.Sprintf("Topic: %s doesn't exist.", topicName))
 		return nil
@@ -152,15 +160,14 @@ func (mdm *metadataManager) putTopic(t *topic) error {
 	mdm.topicMapMutex.Lock()
 	defer mdm.topicMapMutex.Unlock()
 
-	_, exist := mdm.topicMap[t.topicName]
+	_, exist := mdm.topicMap[t.topicId]
 	if exist {
 		return ErrTopicAlreadyExist
 	}
 
 	keys := make([][]byte, 2)
 	values := make([][]byte, 2)
-
-	keys[0] = []byte(TopicMetaPathPrefix + "allTopics")
+	keys[0] = allTopicsPathKey
 	value, err := mdm.tikvClient.Get(keys[0])
 
 	if err != nil {
@@ -174,11 +181,8 @@ func (mdm *metadataManager) putTopic(t *topic) error {
 	copy(values[0][:len(value)], value)
 	copy(values[0][len(value):], bytesOfUint64)
 
-	//values[0][:len(value)] = value
-	//values[0][len(value):] = bytesOfUint64
-
 	keys[1] = []byte(t.path)
-	values[1] = mdm.encodeTopic(t)
+	values[1] = encodeTopic(t)
 
 	// TODO: TiKV guarantee request all success or not?
 	err = mdm.tikvClient.BatchPut(keys, values)
@@ -186,10 +190,10 @@ func (mdm *metadataManager) putTopic(t *topic) error {
 		log.Warnf("put topic to TiKV failed, error: %v", err)
 		return err
 	}
-	mdm.topicMap[t.topicName] = t
+	mdm.topicMap[t.topicId] = t
 	log.Info(fmt.Sprintf("topic: %s insert to map", t.topicName))
 	for k, _ := range  mdm.topicMap{
-		log.Info(fmt.Printf("topic: %s", k))
+		log.Info(fmt.Printf("topic: %d", k))
 	}
 	return nil
 }
@@ -200,7 +204,7 @@ func (mdm *metadataManager) getQueue(queueId uint64) *Queue {
 
 	q, exist := mdm.queueMap[queueId]
 	if !exist {
-		log.Infof("Queue: %s doesn't exist.", queueId)
+		log.Infof("QueueId: %d doesn't exist.", queueId)
 		return nil
 	}
 	return q
@@ -219,55 +223,59 @@ func (mdm *metadataManager) putQueue(q *Queue) error {
 	return mdm.tikvClient.Put([]byte(q.path), mdm.encodeQueue(q))
 }
 
-func (mdm *metadataManager) encodeTopic(t *topic) []byte {
+func encodeTopic(t *topic) []byte {
 	qStr := ""
 	for i := 0; i < len(t.queues)-1; i++ {
-		qStr = fmt.Sprint("%s,%d", qStr, t.queues[i].queueId)
+		qStr += fmt.Sprint(t.queues[i].queueId) + ","
 	}
-	qStr = fmt.Sprint("%s,%d", qStr, t.queues[len(t.queues)-1].queueId)
-	str := fmt.Sprint("%d;%s;%s;%s,%v", t.topicId, t.path, t.topicName, qStr, t.autoScaling)
+	qStr += fmt.Sprint(t.queues[len(t.queues)-1].queueId)
+	str := fmt.Sprintf("%d;%s;%s;%s;%v", t.topicId, t.path, t.topicName, qStr, t.autoScaling)
 
 	return []byte(str)
 }
 
-func (mdm *metadataManager) decodeTopic(data []byte) *topic {
+func decodeTopic(data []byte) *topic {
+	if data == nil || len(data) == 0{
+		return nil
+	}
 	t := &topic{}
 	t.status = &topicStatus{producers: make(map[uint64]*ProducerInfo), consumers: make(map[uint64]*ConsumerInfo)}
 	values := strings.Split(string(data), ";")
 	if len(values) != 5 {
-		log.Errorf("decode topic failed, origin values: %v", values)
+		log.Errorf("decode topic failed, expect length is 5, origin values: %v", values)
 		return nil
 	}
+
+	// topicId
 	v, err := strconv.Atoi(values[0])
 	if err != nil {
-		log.Errorf("convert topicId error")
+		log.Errorf("convert topicId error, value:%s", values[0])
 		return nil
 	}
 	t.topicId = uint64(v)
+	// topic store path
 	t.path = values[1]
+	// name of topic
 	t.topicName = values[2]
+
+	// queues of topic
+	queues := strings.Split(values[3], ",")
+	t.queues = make([]*Queue, len(queues))
+	for i := 0; i < len(queues); i++ {
+		v, err := strconv.Atoi(queues[i])
+		if err != nil {
+			log.Errorf("convert queueId error, value:%s", queues[i])
+			return nil
+		}
+		t.queues[i] = &Queue{queueId: uint64(v)}
+	}
+
 	b, err := strconv.ParseBool(values[4])
 	if err != nil {
 		log.Errorf("convert autoScaling error")
 		return nil
 	}
 	t.autoScaling = b
-	t.queues = make([]*Queue, 0)
-	queues := strings.Split(values[3], ",")
-
-	for i := 0; i < len(queues); i++ {
-		v, err := strconv.Atoi(values[0])
-		if err != nil {
-			log.Errorf("convert queueId error")
-			return nil
-		}
-		q := mdm.loadQueue(uint64(v))
-		if q == nil {
-			log.Errorf("queueId: %d doesn't exist.", v)
-			return nil
-		}
-		t.queues = append(t.queues, q)
-	}
 	return t
 }
 

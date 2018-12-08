@@ -4,8 +4,7 @@ import (
 	"testing"
 	"time"
 	"fmt"
-	"github.com/wenfengwang/iMQ/broker/pb"
-	"github.com/wenfengwang/iMQ/client/pb"
+	"github.com/wenfengwang/iMQ/pb"
 )
 
 func TestProducer_Publish(t *testing.T) {
@@ -33,12 +32,12 @@ func TestProducer_Publish(t *testing.T) {
 	for i:=0; i < 16 ; i++  {
 		go func() {
 			for {
-				msgs := make([]*brokerpb.Message, 16)
+				msgs := make([]*pb.Message, 16)
 				for i := 0; i < 16; i++ {
-					msgs[i] = &brokerpb.Message{Body:"testsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestssssss"}
+					msgs[i] = &pb.Message{Body:"testsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestsssssstestssssss"}
 				}
 				res := p.PublishBatch(msgs)
-				if res == clientpb.PublishResult_SUCCESS {
+				if res == pb.PublishResult_SUCCESS {
 					count += 16
 				}
 			}

@@ -95,13 +95,8 @@ func (b *pubsub) subscribe(request *pb.SubscribeRequest) (pb.PubSub_SubscribeCli
 }
 
 func (b *pubsub) pullMessage(request *pb.PullMessageRequest, ch chan *pb.PullMessageResponse) error {
-	//b.mutex.Lock()
-	//request.RequestId = b.requestIdGen
-	//b.requestIdGen++
-	//b.mutex.Unlock()
 	atomic.AddUint64(&b.requestIdGen, 1)
 	b.pullMsgClient.Send(request)
-	//fmt.Println("request id", request.RequestId)
 	b.pullResultChMap.Store(request.RequestId, ch)
 	return nil
 }

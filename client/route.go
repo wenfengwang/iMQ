@@ -37,39 +37,18 @@ func (rh *RouteHub) start() error {
 	return nil
 }
 
-func (rh *RouteHub) helper() *pb.BrokerInfo{
-	//switch atomic.AddUint64(&rh.count,1) % 3 {
-	//case 0:
-	//	return &pb.BrokerInfo{BrokerId: 0, Address: "localhost:23456"}
-	//case 1:
-	//	return &pb.BrokerInfo{BrokerId: 1, Address: "localhost:23456"}
-	//case 2:
-	//	return &pb.BrokerInfo{BrokerId: 2, Address: "localhost:23456"}
-	//}
-	return &pb.BrokerInfo{BrokerId: 0, Address: "localhost:23456"}
-}
-
 func (rh *RouteHub) getQueueRoute(action pb.Action, id uint64, topicName string) []*QueueRoute {
-	newRoutes := make([]*QueueRoute, 16)
-	for i := 0; i < 16 ; i++  {
-		newRoutes[i] = &QueueRoute{
-			queueId: 5*10e8 + uint64(i),
-			broker: rHub.bh.getBroker(rh.helper()),
-		}
+	tr, exist := rh.topicRouteMap.Load(topicName)
+	if !exist {
+		tr, _ = rh.topicRouteMap.LoadOrStore(topicName, &topicRoute{})
+		rh.updateRouteInfo(action, id, topicName)
 	}
 
-	return newRoutes
-	//tr, exist := rh.topicRouteMap.Load(topicName)
-	//if !exist {
-	//	tr, _ = rh.topicRouteMap.LoadOrStore(topicName, &topicRoute{})
-	//	rh.updateRouteInfo(action, id, topicName)
-	//}
-	//
-	//qrs, exist := tr.(*topicRoute).instanceToQueue.Load(id)
-	//if !exist {
-	//	return nil
-	//}
-	//return qrs.([]*QueueRoute)
+	qrs, exist := tr.(*topicRoute).instanceToQueue.Load(id)
+	if !exist {
+		return nil
+	}
+	return qrs.([]*QueueRoute)
 }
 
 func (rh *RouteHub) updateRouteInfo(action pb.Action, id uint64, name string) {
