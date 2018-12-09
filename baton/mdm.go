@@ -309,9 +309,9 @@ func decodeQueue(data []byte) *Queue {
 	}
 	q.queueId = uint64(v)
 	q.path = values[1]
-	p, exist := pb.Permission_value[values[3]]
+	p, exist := pb.Permission_value[values[2]]
 	if !exist {
-		log.Errorf("perm string of %s error", values[3])
+		log.Errorf("perm string of %s error", values[2])
 		return nil
 	}
 	q.perm = pb.Permission(p)
