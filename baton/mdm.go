@@ -80,15 +80,26 @@ func (mdm *metadataManager) loadTopicsAndQueues() {
 	}
 
 	for i := 0; i < len(value); i += 8 {
+		// load topic
 		topicId := binary.BigEndian.Uint64(value[i:i+8])
 		t := mdm.loadTopic(topicId)
 		if t == nil {
 			log.Errorf("load topicId: %v but it doesn't exist.", topicId)
 			continue
 		}
+
+		// load queue
+		qs := make([]*Queue, 0)
 		for j := 0; j < len(t.queues); j++ {
-			mdm.queueMap[t.queues[i].queueId] = t.queues[i]
+			q := mdm.loadQueue(t.queues[i].queueId)
+			if q == nil {
+				log.Errorf("load queue:[%d] but got nil", t.queues[i].queueId)
+				continue
+			}
+			qs = append(qs, q)
+			mdm.queueMap[q.queueId] = q
 		}
+		t.queues = qs
 		mdm.topicMap[t.topicId] = t
 	}
 }
@@ -110,7 +121,7 @@ func (mdm *metadataManager) loadQueue(queueId uint64) *Queue {
 		return nil
 	}
 
-	return mdm.decodeQueue(value)
+	return decodeQueue(value)
 }
 
 func (mdm *metadataManager) generateTopicId() (uint64, error) {
@@ -148,7 +159,7 @@ func (mdm *metadataManager) getTopic(topicName string) *topic {
 	mdm.topicMapMutex.RLock()
 	defer mdm.topicMapMutex.RUnlock()
 
-	t, _ := mdm.topicMap[1] // TODO
+	t, _ := mdm.topicMap[1] // TODO how to transform topicName to topicId
 	if t == nil {
 		log.Info(fmt.Sprintf("Topic: %s doesn't exist.", topicName))
 		return nil
@@ -220,7 +231,7 @@ func (mdm *metadataManager) putQueue(q *Queue) error {
 	}
 	mdm.queueMap[q.queueId] = q
 	log.Info(fmt.Sprintf("add queue: %d", q.queueId))
-	return mdm.tikvClient.Put([]byte(q.path), mdm.encodeQueue(q))
+	return mdm.tikvClient.Put([]byte(q.path), encodeQueue(q))
 }
 
 func encodeTopic(t *topic) []byte {
@@ -279,11 +290,11 @@ func decodeTopic(data []byte) *topic {
 	return t
 }
 
-func (mdm *metadataManager) encodeQueue(q *Queue) []byte {
+func encodeQueue(q *Queue) []byte {
 	return []byte(fmt.Sprintf("%d,%s,%v", q.queueId, q.path, pb.Permission_name[int32(q.perm)]))
 }
 
-func (mdm *metadataManager) decodeQueue(data []byte) *Queue {
+func decodeQueue(data []byte) *Queue {
 	q := &Queue{}
 	q.status = &QueueStatus{}
 	values := strings.Split(string(data), ",")

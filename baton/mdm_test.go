@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 	"github.com/stretchr/testify/assert"
+	"github.com/wenfengwang/iMQ/pb"
 )
 
 func TestTopic_Encode(t *testing.T) {
@@ -39,7 +40,13 @@ func TestTopic_Decode(t *testing.T) {
 }
 
 func TestQueue_Encode(t *testing.T) {
-	
+	q := &Queue{
+		queueId: 123450987654,
+		path:QueueMetaPathPrefix + fmt.Sprint(123450987654),
+		perm: pb.Permission_READ_WRITE,
+	}
+
+	fmt.Println(string(encodeQueue(q)))
 }
 
 
