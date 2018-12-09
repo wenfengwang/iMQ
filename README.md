@@ -24,7 +24,7 @@ contribution are very welcome.
 - Multiple Language Clients: TODO
 - MQTT Protocol Supported: TODO
 
-### Milestone 2
+### Milestone 3
 - Transaction Message: TODO
 - Integration with BigData System: TODO
 - Function & Streaming: TODO
